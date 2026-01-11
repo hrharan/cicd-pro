@@ -1,0 +1,54 @@
+name: Enterprise CI/CD Pipeline
+
+on: [push, pull_request]
+
+jobs:
+  # JOB 1: The Quality Gate (Static Analysis)
+  quality-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install Tools
+        run: pip install flake8 bandit
+      
+      # Linter: Fails if code is "ugly" or has syntax errors
+      - name: Run Linting (Flake8)
+        run: |
+          # stop the build if there are Python syntax errors or undefined names
+          flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
+      
+      # Security: Fails if code has security holes (like hardcoded passwords)
+      - name: Run Security Scan (Bandit)
+        run: bandit -r src/
+
+  # JOB 2: The Logic Gate (Unit Tests)
+  unit-tests:
+    runs-on: ubuntu-latest
+    needs: quality-check  # Don't run tests if the code is ugly!
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+      
+      - name: Run Pytest
+        # We add 'src' to PYTHONPATH so tests can find the app
+        run: PYTHONPATH=src pytest tests/
+
+  # JOB 3: The Delivery Gate (Docker Build)
+  build-image:
+    runs-on: ubuntu-latest
+    needs: unit-tests  # Only build if tests pass
+    steps:
+      - uses: actions/checkout@v3
+      
+      # We just build it to prove it works (Simulation)
+      - name: Build Docker Image
+        run: docker build -t my-enterprise-app:latest .
