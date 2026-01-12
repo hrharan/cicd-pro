@@ -2,3 +2,5 @@ flask
 pytest
 flake8  # The Linter (Style Police)
 bandit  # The Security Scanner (Hacker Police)
+flask-sqlalchemy
+flask-migrate
