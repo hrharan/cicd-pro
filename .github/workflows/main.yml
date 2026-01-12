@@ -42,6 +42,20 @@ jobs:
         # We add 'src' to PYTHONPATH so tests can find the app
         run: PYTHONPATH=src pytest tests/
 
+      - name: Initialize Database (Simulation)
+        run: |
+          # Set the Flask App variable
+          export FLASK_APP=src/app.py
+          
+          # Initialize the DB (In a real production env, you skip 'init' and just do 'upgrade')
+          flask db init || true  # The || true prevents failure if it already exists
+          
+          # Create the migration script (if not exists)
+          flask db migrate -m "CI Migration" || true
+          
+          # Apply the migration (The Real Test)
+          flask db upgrade
+
   # JOB 3: The Delivery Gate (Docker Build)
   build-image:
     runs-on: ubuntu-latest
