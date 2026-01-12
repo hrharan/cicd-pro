@@ -32,8 +32,8 @@ def get_tasks():
     return jsonify({"tasks": output}), 200
 
 # Helper to create DB (only for local testing)
-@app.before_first_request
-def create_tables():
+# NEW WAY: Create tables immediately using app_context
+with app.app_context():
     db.create_all()
 
 if __name__ == "__main__":
