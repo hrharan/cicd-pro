@@ -1,21 +1,40 @@
 from flask import Flask, jsonify, request
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 
 app = Flask(__name__)
 
-# A mock database (List of dictionaries)
-tasks = [
-    {"id": 1, "title": "Learn CI/CD", "done": False},
-    {"id": 2, "title": "Build Docker", "done": True}
-]
+# 1. Configure the Database (SQLite for now)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///tasks.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# 2. Initialize Plugins
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
+
+# 3. Define the Table (The Schema)
+class Task(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100), nullable=False)
+    done = db.Column(db.Boolean, default=False)
 
 @app.route('/health', methods=['GET'])
 def health_check():
-    return jsonify({"status": "healthy", "version": "1.0.0"}), 200
+    return jsonify({"status": "healthy", "db": "connected"}), 200
 
 @app.route('/tasks', methods=['GET'])
 def get_tasks():
-    return jsonify({"tasks": tasks, "count": len(tasks)}), 200
+    # Fetch real data from DB
+    tasks = Task.query.all()
+    output = []
+    for task in tasks:
+        output.append({"id": task.id, "title": task.title, "done": task.done})
+    return jsonify({"tasks": output}), 200
+
+# Helper to create DB (only for local testing)
+@app.before_first_request
+def create_tables():
+    db.create_all()
 
 if __name__ == "__main__":
-    # We use 'nosec' to tell Bandit to ignore this specific line
     app.run(host="0.0.0.0", port=5000) # nosec
